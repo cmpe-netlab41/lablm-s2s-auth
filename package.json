@@ -2,7 +2,17 @@
   "name": "@lablm/s2s-auth",
   "version": "0.1.0",
   "description": "Generic service-to-service EdDSA JWT authentication for LabLM",
+  "type": "commonjs",
   "license": "Apache-2.0",
+  "author": "NETLAB-41",
+  "keywords": [
+    "lablm",
+    "s2s-auth",
+    "jwt",
+    "eddsa",
+    "auth",
+    "security"
+  ],
   "engines": {
     "node": ">=20"
   },

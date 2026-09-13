@@ -1,20 +1,25 @@
-name: Publish to npm
+name: CI & NPM Publish
 
 on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build-and-publish:
-    name: Build, Test & Publish
+  verify:
+    name: Verify (Types, Build & Test)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -43,7 +48,33 @@ jobs:
       - name: Run Tests
         run: pnpm run test
 
-      - name: Publish to npm (if version bumped)
+  publish:
+    name: Publish to NPM
+    needs: verify
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Build Package
+        run: pnpm run build
+
+      - name: Publish to NPM
         shell: bash
         run: |
           PKG_NAME=$(node -p "require('./package.json').name")
@@ -53,7 +84,7 @@ jobs:
           if npm view "$PKG_NAME@$PKG_VERSION" version > /dev/null 2>&1; then
             echo "ℹ️ Version $PKG_VERSION is already published on npm. Skipping publish."
           else
-            echo "🚀 Publishing $PKG_NAME@$PKG_VERSION to npm..."
+            echo "🚀 Publishing $PKG_NAME@$PKG_VERSION to npm with provenance..."
             pnpm publish --access public --no-git-checks --provenance
             echo "✅ Successfully published $PKG_NAME@$PKG_VERSION!"
           fi
